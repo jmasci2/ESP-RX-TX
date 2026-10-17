@@ -1,0 +1,7 @@
+-mlongcalls
+-fno-builtin-memcpy
+-fno-builtin-memset
+-fno-builtin-bzero
+-mdisable-hardware-atomics
+"-specs=C:/Users/jmasci/Documents/Arduino/ESP RX-TX/build/specs/picolibc.specs"
+-fno-rtti

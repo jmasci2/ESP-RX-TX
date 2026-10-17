@@ -1,0 +1,47 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build - Build project",
+            "type": "esp-idf",
+            "command": "build",
+            "problemMatcher": "$espIdf",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Arduino: Build transmitter",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\tools\\build.ps1",
+                "-Sketch",
+                "remote"
+            ],
+            "problemMatcher": "$gcc",
+            "group": "build"
+        },
+        {
+            "label": "Arduino: Build receiver",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\tools\\build.ps1",
+                "-Sketch",
+                "receiver"
+            ],
+            "problemMatcher": "$gcc",
+            "group": "build"
+        }
+    ]
+}

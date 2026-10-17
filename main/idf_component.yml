@@ -1,0 +1,15 @@
+dependencies:
+  idf: ">=6.0"
+  espressif/esp32_display_panel: "1.0.4"
+  lvgl/lvgl: "9.6.0"
+overrides:
+  - espressif/esp32_display_panel:
+      with:
+        esp32_display_panel:
+          path: ../components/esp32_display_panel
+      reason: ESP-IDF 6.1 panel driver and configuration compatibility
+  - espressif/esp32_io_expander:
+      with:
+        esp32_io_expander:
+          path: ../components/esp32_io_expander
+      reason: ESP-IDF 6.1 driver_ng I2C compatibility
