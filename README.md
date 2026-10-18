@@ -12,7 +12,7 @@ The board assumption is based on Elecrow's DIS08070H 7-inch HMI. Its LCD uses a 
 - Four potentiometers/analog controls and ADS1115 at 0x48
 - SparkFun original serial MP3 Trigger with a FAT16/FAT32 card and numbered files
 - Dimension Engineering Sabertooth dual motor driver and SyRen motor driver
-- Battery divider parts: 100 kΩ + 100 kΩ for transmitter sense; 100 kΩ + 15 kΩ for receiver sense
+- Receiver battery divider parts: 100 kΩ + 15 kΩ
 
 ## Transmitter wiring
 
@@ -26,10 +26,6 @@ Connect the four control wipers to ADS1115 A0–A3, with control ends at 3.3 V a
 
 Connect one side of each momentary switch to P0–P5 and the other side to GND. P6–P7 remain unused. The firmware drives the expander pins high and scans active-low button presses. Button events are sent to the receiver; current receiver firmware reports them but does not assign actions.
 
-### Transmitter battery sense
-
-Connect the battery measurement divider midpoint to **GPIO10 (ADC1 channel 9)**: battery positive → 100 kΩ → GPIO10 → 100 kΩ → GND. This reports the sensed source as transmitter battery voltage. Keep GPIO10 at or below 3.3 V and share ground. With the 2:1 divider, do not measure above about 6.6 V. Do not connect battery positive directly to an ESP32 pin. The selected CrowPanel display profile uses GPIO9 for RGB data and leaves GPIO10 unused.
-
 ## Receiver wiring and operation
 
 The receiver uses UART2 GPIO17 TX/GPIO16 RX for the SparkFun Trigger at 38,400 baud. Connect ESP32 TX to Trigger RX, RX to TX, and GND to GND. The Trigger sends audio to its own speaker/amplifier output.
@@ -38,7 +34,7 @@ The Sabertooth uses Simplified Serial at 9600 baud from receiver GPIO4 to S1, wi
 
 Receiver battery sensing uses a divider from battery positive through 100 kΩ to receiver GPIO32 and 15 kΩ from GPIO32 to ground (maximum about 25 V). It reports only the battery connected to this divider. Join signal grounds. Never connect battery positive directly to an ESP32 GPIO.
 
-The screen reports ESP-NOW link age, last track number sent, current track bank, all four local analog controls, receiver control positions, Sabertooth/SyRen commanded power, and transmitter/receiver battery voltage. Reported “positions” are ADC control positions, not motor shaft positions; encoders are needed for actual shaft feedback. The six separate physical buttons remain available through the PCF8574.
+The screen reports ESP-NOW link age, last track number sent, current track bank, all four local analog controls, receiver control positions, Sabertooth/SyRen commanded power, and receiver battery voltage. Reported “positions” are ADC control positions, not motor shaft positions; encoders are needed for actual shaft feedback. The six separate physical buttons remain available through the PCF8574.
 
 ## ESP-IDF transmitter build
 
@@ -53,7 +49,7 @@ idf.py build
 
 Use `idf.py menuconfig` to adjust project settings. The ADS1115, PCF8574, touch controller, and board expander share the ESP-IDF 6 I²C master bus initialized by the CrowPanel profile. The original Arduino sketches remain in `ESP-TX/remote` and `ESP-RX/receiver` as separate firmware sources.
 
-The receiver STA MAC still needs to be copied into `receiverMac` in `main/main.cpp`. GPIO10 is used for transmitter battery ADC because GPIO38 is not ADC-capable on the ESP32-S3 and GPIO9 is used by the display.
+The receiver STA MAC still needs to be copied into `receiverMac` in `main/esp_now_link.cpp`.
 
 ## Arduino builds
 

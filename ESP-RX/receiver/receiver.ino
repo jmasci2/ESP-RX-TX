@@ -21,7 +21,6 @@ static constexpr uint8_t BATTERY_SENSE_PIN = 32;
 static constexpr float BATTERY_DIVIDER_RATIO = (100.0f + 15.0f) / 15.0f;
 static constexpr uint32_t LINK_TIMEOUT_MS = 750;
 static constexpr int AXIS_DEADBAND = 160;
-static constexpr uint8_t EVENT_BATTERY = 4;
 static constexpr uint8_t EVENT_FEEDBACK = 0x80;
 static constexpr uint32_t FEEDBACK_INTERVAL_MS = 500;
 static constexpr uint8_t EVENT_ANALOG = 2;
@@ -33,7 +32,6 @@ HardwareSerial mp3Serial(2);
 HardwareSerial sabertoothSerial(1);
 EspSoftwareSerial::UART syrenSerial;
 uint16_t analogValues[4] = {2048, 2048, 2048, 2048};
-uint16_t transmitterBatteryMv = 0;
 bool axisSeen[2] = {false, false};
 volatile uint32_t lastInputAt = 0;
 volatile int pendingSyrenPower = 0;
@@ -65,7 +63,6 @@ struct __attribute__((packed)) FeedbackPacket {
   int8_t sabertoothMotor2;
   int8_t syrenMotor;
   uint16_t receiverBatteryMv;
-  uint16_t transmitterBatteryMv;
 };
 
 // Simplified Serial byte encoding, equivalent to Dimension Engineering's
@@ -183,11 +180,6 @@ void onReceive(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
     }
     return;
   }
-  if (packet.type == EVENT_BATTERY) {
-    transmitterBatteryMv = packet.value;
-    Serial.printf("BATTERY RX: transmitter=%u mV\n", transmitterBatteryMv);
-    return;
-  }
   if (packet.type == EVENT_TRACK) {
     uint16_t trackNumber = packet.value;
     sendTrackToAudioBoard(trackNumber);
@@ -217,7 +209,6 @@ void sendFeedback() {
   feedback.sabertoothMotor2 = static_cast<int8_t>(lastMotor2 == 999 ? 0 : lastMotor2);
   feedback.syrenMotor = static_cast<int8_t>(lastSyrenPower == 999 ? 0 : lastSyrenPower);
   feedback.receiverBatteryMv = static_cast<uint16_t>(receiverPinMv * BATTERY_DIVIDER_RATIO);
-  feedback.transmitterBatteryMv = transmitterBatteryMv;
 
   const uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
   if (esp_now_send(broadcastMac, reinterpret_cast<const uint8_t *>(&feedback),
@@ -231,13 +222,12 @@ void printDebugSummary() {
   if (now - lastDebugSummaryAt < 1000) return;
   lastDebugSummaryAt = now;
   uint32_t age = lastInputAt == 0 ? UINT32_MAX : now - lastInputAt;
-  Serial.printf("STATUS rx=%lu rejected=%lu seq=%u age=%s%lu ms A1=%u A2=%u A3=%u A4=%u txBatt=%u mV motors=%d,%d syren=%d\n",
+  Serial.printf("STATUS rx=%lu rejected=%lu seq=%u age=%s%lu ms A1=%u A2=%u A3=%u A4=%u motors=%d,%d syren=%d\n",
                 static_cast<unsigned long>(receivedPacketCount),
                 static_cast<unsigned long>(rejectedPacketCount),
                 lastReceivedSequence, age == UINT32_MAX ? ">" : "",
                 static_cast<unsigned long>(age == UINT32_MAX ? 999999 : age),
                 analogValues[0], analogValues[1], analogValues[2], analogValues[3],
-                transmitterBatteryMv,
                 lastMotor1 == 999 ? 0 : lastMotor1,
                 lastMotor2 == 999 ? 0 : lastMotor2,
                 lastSyrenPower == 999 ? 0 : lastSyrenPower);

@@ -22,19 +22,14 @@ static constexpr uint8_t BUTTON_PCF8574_ADDRESS = 0x21; // six buttons on separa
 static constexpr uint8_t ADS1115_ADDRESS = 0x48;
 static constexpr uint8_t EVENT_ANALOG = 2;
 static constexpr uint8_t EVENT_BUTTON = 3;
-static constexpr uint8_t EVENT_BATTERY = 4;
 static constexpr uint8_t EVENT_TRACK = 5;
 static constexpr uint8_t EVENT_KEEPALIVE = 6;
 static constexpr uint8_t PHYSICAL_BUTTON_CODE_BASE = 65;
 static constexpr uint8_t EVENT_FEEDBACK = 0x80;
-static constexpr uint8_t BATTERY_SENSE_PIN = 38; // CrowPanel GPIO_D ADC input
-// Divider: battery+ -- 100k -- GPIO38 -- 100k -- GND (ratio 2.0, max ~6.6V).
-static constexpr float BATTERY_DIVIDER_RATIO = 2.0f;
 static constexpr uint16_t ANALOG_DELTA = 32; // send after ~32 ADC counts of movement
 static constexpr uint32_t ANALOG_SAMPLE_MS = 40;
 static constexpr uint32_t ANALOG_KEEPALIVE_MS = 200;
 static constexpr uint32_t BUTTON_DEBOUNCE_MS = 30;
-static constexpr uint32_t BATTERY_REPORT_MS = 1000;
 static constexpr uint32_t KEEPALIVE_INTERVAL_MS = 250;
 
 // Replace with the RECEIVER's Wi-Fi station MAC, printed in its Serial Monitor.
@@ -52,7 +47,6 @@ lv_obj_t *linkLabel, *keyLabel, *analogLabel[4], *analogBar[4];
 lv_obj_t *motorLabel, *batteryLabel, *bankLabel;
 lv_obj_t *trackButtonLabels[16];
 uint32_t lastFeedbackAt = 0;
-uint16_t transmitterBatteryMv = 0;
 bool haveFeedback = false;
 uint8_t selectedBank = 0;
 uint8_t lastTrackSelected = 0;
@@ -74,7 +68,6 @@ struct __attribute__((packed)) FeedbackPacket {
   int8_t sabertoothMotor2;
   int8_t syrenMotor;
   uint16_t receiverBatteryMv;
-  uint16_t transmitterBatteryMv;
 };
 FeedbackPacket lastFeedback{};
 static constexpr uint16_t PACKET_MAGIC = 0x4B42;
@@ -85,7 +78,6 @@ bool buttonRaw[6];
 bool buttonStable[6];
 uint32_t buttonChangedAt[6] = {0, 0, 0, 0, 0, 0};
 uint32_t lastAnalogSample = 0;
-uint32_t lastBatteryReport = 0;
 uint32_t lastKeepaliveAt = 0;
 
 uint32_t getLvglTick() {
@@ -102,11 +94,11 @@ void onReceive(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
   haveFeedback = true;
   lastFeedbackAt = millis();
 
-  Serial.printf("RX feedback #%u | controls A1=%u A2=%u A3=%u A4=%u | Sabertooth M1=%d M2=%d | SyRen=%d | receiver battery=%.2fV | transmitter battery=%.2fV\n",
+  Serial.printf("RX feedback #%u | controls A1=%u A2=%u A3=%u A4=%u | Sabertooth M1=%d M2=%d | SyRen=%d | receiver battery=%.2fV\n",
                 feedback.sequence, feedback.analogPosition[0], feedback.analogPosition[1],
                 feedback.analogPosition[2], feedback.analogPosition[3],
                 feedback.sabertoothMotor1, feedback.sabertoothMotor2, feedback.syrenMotor,
-                feedback.receiverBatteryMv / 1000.0f, feedback.transmitterBatteryMv / 1000.0f);
+                feedback.receiverBatteryMv / 1000.0f);
 }
 
 void onSent(const wifi_tx_info_t *txInfo, esp_now_send_status_t status) {
@@ -365,23 +357,11 @@ void updateDashboard() {
       lastFeedback.sabertoothMotor1, lastFeedback.sabertoothMotor2,
       lastFeedback.syrenMotor, lastFeedback.analogPosition[0], lastFeedback.analogPosition[1],
       lastFeedback.analogPosition[2], lastFeedback.analogPosition[3]);
-    lv_label_set_text_fmt(batteryLabel, "BATTERY\n\nTransmitter: %.2f V\nReceiver: %.2f V",
-      transmitterBatteryMv / 1000.0f, lastFeedback.receiverBatteryMv / 1000.0f);
+    lv_label_set_text_fmt(batteryLabel, "RECEIVER BATTERY\n\n%.2f V",
+      lastFeedback.receiverBatteryMv / 1000.0f);
   } else {
     lv_label_set_text(motorLabel, "Waiting for receiver feedback...");
-    lv_label_set_text_fmt(batteryLabel, "BATTERY\n\nTransmitter: %.2f V\nReceiver: --",
-      transmitterBatteryMv / 1000.0f);
-  }
-}
-
-void reportBattery() {
-  uint32_t now = millis();
-  if (now - lastBatteryReport < BATTERY_REPORT_MS) return;
-  lastBatteryReport = now;
-  uint32_t pinMillivolts = analogReadMilliVolts(BATTERY_SENSE_PIN);
-  transmitterBatteryMv = static_cast<uint16_t>(pinMillivolts * BATTERY_DIVIDER_RATIO);
-  if (!sendInput(EVENT_BATTERY, 0, transmitterBatteryMv)) {
-    Serial.println("Queueing transmitter battery packet failed");
+    lv_label_set_text(batteryLabel, "RECEIVER BATTERY\n\n--");
   }
 }
 
@@ -443,7 +423,6 @@ void setup() {
   Serial.println("STARTUP: dashboard created");
   Serial.flush();
   analogReadResolution(12);
-  pinMode(BATTERY_SENSE_PIN, INPUT);
   if (!probeAds1115()) {
     Serial.println("ADS1115 not detected at 0x48; connect analog controls to ADS1115 A0-A3");
   }
@@ -488,7 +467,6 @@ void setup() {
 void loop() {
   pollAnalogInputs();
   pollButtons();
-  reportBattery();
   sendKeepalive();
   updateDashboard();
   lv_timer_handler();

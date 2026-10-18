@@ -174,12 +174,10 @@ void updateDisplay() {
         appState.lastFeedback.syrenMotor, appState.lastFeedback.analogPosition[0],
         appState.lastFeedback.analogPosition[1], appState.lastFeedback.analogPosition[2],
         appState.lastFeedback.analogPosition[3]);
-    lv_label_set_text_fmt(batteryLabel, "BATTERY\n\nTransmitter: %.2f V\nReceiver: %.2f V",
-                          appState.transmitterBatteryMv / 1000.0f,
+    lv_label_set_text_fmt(batteryLabel, "RECEIVER BATTERY\n\n%.2f V",
                           appState.lastFeedback.receiverBatteryMv / 1000.0f);
   } else {
     lv_label_set_text(motorLabel, "Waiting for receiver feedback...");
-    lv_label_set_text_fmt(batteryLabel, "BATTERY\n\nTransmitter: %.2f V\nReceiver: --",
-                          appState.transmitterBatteryMv / 1000.0f);
+    lv_label_set_text(batteryLabel, "RECEIVER BATTERY\n\n--");
   }
 }

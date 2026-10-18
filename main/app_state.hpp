@@ -6,7 +6,6 @@
 static constexpr uint8_t WIFI_CHANNEL = 6;
 static constexpr uint8_t EVENT_ANALOG = 2;
 static constexpr uint8_t EVENT_BUTTON = 3;
-static constexpr uint8_t EVENT_BATTERY = 4;
 static constexpr uint8_t EVENT_TRACK = 5;
 static constexpr uint8_t EVENT_KEEPALIVE = 6;
 static constexpr uint8_t EVENT_FEEDBACK = 0x80;
@@ -30,13 +29,11 @@ struct __attribute__((packed)) FeedbackPacket {
   int8_t sabertoothMotor2;
   int8_t syrenMotor;
   uint16_t receiverBatteryMv;
-  uint16_t transmitterBatteryMv;
 };
 
 struct RuntimeState {
   FeedbackPacket lastFeedback{};
   uint32_t lastFeedbackAt = 0;
-  uint16_t transmitterBatteryMv = 0;
   bool haveFeedback = false;
   uint8_t selectedBank = 0;
   uint8_t lastTrackSelected = 0;
@@ -47,7 +44,6 @@ struct RuntimeState {
   bool buttonStable[6] = {};
   uint32_t buttonChangedAt[6] = {};
   uint32_t lastAnalogSample = 0;
-  uint32_t lastBatteryReport = 0;
   uint32_t lastKeepaliveAt = 0;
   uint32_t lastUiUpdate = 0;
 };

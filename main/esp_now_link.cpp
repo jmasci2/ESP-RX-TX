@@ -27,11 +27,11 @@ static void onReceive(const esp_now_recv_info_t *info, const uint8_t *data, int 
   appState.haveFeedback = true;
   appState.lastFeedbackAt = millis();
   Serial.printf(
-      "RX feedback #%u | controls A1=%u A2=%u A3=%u A4=%u | Sabertooth M1=%d M2=%d | SyRen=%d | receiver battery=%.2fV | transmitter battery=%.2fV\n",
+      "RX feedback #%u | controls A1=%u A2=%u A3=%u A4=%u | Sabertooth M1=%d M2=%d | SyRen=%d | receiver battery=%.2fV\n",
       feedback.sequence, feedback.analogPosition[0], feedback.analogPosition[1],
       feedback.analogPosition[2], feedback.analogPosition[3],
       feedback.sabertoothMotor1, feedback.sabertoothMotor2, feedback.syrenMotor,
-      feedback.receiverBatteryMv / 1000.0f, feedback.transmitterBatteryMv / 1000.0f);
+      feedback.receiverBatteryMv / 1000.0f);
 }
 
 static void onSent(const esp_now_send_info_t *txInfo, esp_now_send_status_t status) {
